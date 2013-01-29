@@ -229,8 +229,10 @@ class RubySIPPersXMLWriter
       s=-
       c=IN IP[media_ip_type] [media_ip]
       t=0 0
-      m=audio [media_port] RTP/AVP 0
-      a=rtpmap:0 PCMU/8000
+      m=audio [media_port] RTP/AVP 8
+      a=rtpmap:8 PCMU/8000
+      a=rtmap:101 telephone-event/8000
+      a=fmtp:101 0-11,16
 EOQ
   else
   header = <<EOQ
