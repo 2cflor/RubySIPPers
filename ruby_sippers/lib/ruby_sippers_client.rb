@@ -1,5 +1,6 @@
 require 'net/http'
 require 'uri'
+require 'nokogiri'
 
 class RubySIPPersClient
  
@@ -7,19 +8,28 @@ class RubySIPPersClient
     @http = Net::HTTP.new(options[:host], options[:port])
     request = Net::HTTP::Get.new("/ping")
     response = @http.request(request)
-    raise 'Error communicating with server' if response.code != 200
+    raise response.body if response.code != "200"
   end
   
-  def delete_logs
-    request = Net::HTTP::Post.new("/delete_log/1")
+  def delete_log(id)
+    request = Net::HTTP::Get.new("/log/delete/#{id}")
     response = @http.request(request)
+    puts response.body
   end
   
-  def retrieve_logs
-    request = Net::HTTP::Post.new("/retrieve_log/1")
+  def retrieve_log(id)
+    request = Net::HTTP::Get.new("/log/retrieve/#{id}")
     response = @http.request(request)
+    puts response.body
   end
-  
+
+  def logs
+    request = Net::HTTP::Get.new("/log/list")
+    response = @http.request(request)
+    xml = Nokogiri::XML(response.body)
+    xml.xpath("/filenames/filename").map { |i| i.content }
+  end
+    
   def call(options)   
     options[:conversation]
     

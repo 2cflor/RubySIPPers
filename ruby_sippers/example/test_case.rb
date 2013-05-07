@@ -31,9 +31,12 @@ conversation = {
    }     
 
 # make the call 
-ruby_sippers.delete_logs
-ruby_sippers.retrieve_logs
-ruby_sippers.call(:conversation => conversation)
+logs = ruby_sippers.logs
+sleep 5
+
+#ruby_sippers.delete_log(1)
+#ruby_sippers.retrieve_logs(1)
+#ruby_sippers.call(:conversation => conversation)
 
 =begin
 Copyright (C) 2012 Christian Flor, John Crawford, Tye Mcqueen, Ambrose Sterr at Marchex Inc.
