@@ -1,49 +1,88 @@
 require 'nokogiri'
 require 'open-uri'
-require 'csv'
 
 class RubySIPPersXMLWriter
 
-  # public methods 
-  def generate_calls_from_number(inbound_no, argument_caller_number = nil)
-	  if (argument_caller_number)
-		  caller_number = argument_caller_number
-		else
-      caller_number = '4155551234'
-		end
-    callee_name = "Test_Callee_#{inbound_no}"
-    scenario = {
-      :case => "test_call_to_#{inbound_no}",
-      :callee_number => inbound_no,
-      :caller_number => caller_number,
-      :caller_name => 'Automated Test Caller',
-      :roles => [
-        {:name => 'AutomatedTestCaller', :ip => '127.0.1.1', :descr => 'Caller'},
-        {:name => callee_name, :ip => '127.0.2.1', :descr => 'Callee'},
-      ],
-      :sequence  => [
-        {"AutomatedTestCaller > invite > #{callee_name}" => { :retrans => 0.5, :crlf => "true" }},
-        {"AutomatedTestCaller < 100    < #{callee_name}" => { :optional => "true" }},
-        {"AutomatedTestCaller < 180                    " => { :retrans => 0.5, :optional => "true" }},
-        {"                      pause :  #{callee_name}" => { :pause => 1.0 }},
-        {"AutomatedTestCaller < 200    < #{callee_name}" => { :rtd => "true"}},
-        {"AutomatedTestCaller > ack    > #{callee_name}" => { :optional => "true", :rtd => "true", :crlf => "true"}},
-        {"AutomatedTestCaller : pause         " => { :pause => 15.0 }},
-        {"AutomatedTestCaller > bye    > #{callee_name}" => { :retrans => 0.5}},
-        {"AutomatedTestCaller < 200    < #{callee_name}" => { :crlf => "true" }},
-        {"#{callee_name} : pause         "                 => { :pause => 4.0 }}
-      ]
-    }
-    return make_sipp_xml(scenario)
-  end #generate_calls_from_number
- 
+RESPONSE_CODES = {
+    "100" => "100 Trying",
+    "180" => "180 Ringing",
+    "181" => "181 Call Is Being Forwarded",
+    "182" => "182 Queued",
+    "183" => "183 Session Progress",
+    "199" => "199 Early Dialog Terminated",
+    "200" => "200 OK",
+    "202" => "202 Accepted",
+    "204" => "204 No Notification",
+    "300" => "300 Multiple Choices",
+    "301" => "301 Moved Permanently",
+    "302" => "302 Moved Temporarily",
+    "305" => "305 Use Proxy",
+    "380" => "380 Alternative Service",
+    "400" => "400 Bad Request",
+    "401" => "401 Unauthorized",
+    "402" => "402 Payment Required",
+    "403" => "403 Forbidden",
+    "404" => "404 Not Found",
+    "405" => "405 Method Not Allowed",
+    "406" => "406 Not Acceptable",
+    "407" => "407 Proxy Authentication Required",
+    "408" => "408 Request Timeout",
+    "410" => "410 Gone",
+    "412" => "412 Conditional Request Failed",
+    "413" => "413 Request Entity Too Large",
+    "414" => "414 Request-URI Too Long",
+    "415" => "415 Unsupported Media Type",
+    "416" => "416 Unsupported URI Scheme",
+    "417" => "417 Unknown Resource-Priority",
+    "420" => "420 Bad Extension",
+    "421" => "421 Extension Required",
+    "422" => "422 Session Interval Too Small",
+    "423" => "423 Interval Too Brief",
+    "424" => "424 Bad Location Information",
+    "428" => "428 Use Identity Header",
+    "429" => "429 Provide Referrer Identity",
+    "430" => "430 Flow Failed",
+    "433" => "433 Anonymity Disallowed",
+    "436" => "436 Bad Identity-Info",
+    "437" => "437 Unsupported Certificate",
+    "438" => "438 Invalid Identity Header",
+    "439" => "439 First Hop Lacks Outbound Support",
+    "440" => "440 Max-Breadth Exceeded",
+    "469" => "469 Bad Info Package",
+    "470" => "470 Consent Needed",
+    "480" => "480 Temporarily Unavailable",
+    "481" => "481 Call/Transaction Does Not Exist",
+    "482" => "482 Loop Detected",
+    "483" => "483 Too Many Hops",
+    "484" => "484 Address Incomplete",
+    "485" => "485 Ambiguous",
+    "486" => "486 Busy Here",
+    "487" => "487 Request Terminated",
+    "488" => "488 Not Acceptable Here",
+    "489" => "489 Bad Event",
+    "491" => "491 Request Pending",
+    "493" => "493 Undecipherable",
+    "494" => "494 Security Agreement Required",
+    "500" => "500 Server Internal Error",
+    "501" => "501 Not Implemented",
+    "502" => "502 Bad Gateway",
+    "503" => "503 Service Unavailable",
+    "504" => "504 Server Time-out",
+    "505" => "505 Version Not Supported",
+    "513" => "513 Message Too Large",
+    "580" => "580 Precondition Failure",
+    "600" => "600 Busy Everywhere",
+    "603" => "603 Decline",
+    "604" => "604 Does Not Exist Anywhere",
+    "606" => "606 Not Acceptable"  
+}  
   
   ##################################################
   # generate sipP readable xml files from user input
   # param: hash of call specs
   # return: array of xml filenames
   ##################################################
-  def make_sipp_xml(call_specs)
+  def self.make_sipp_xml(call_specs)
     seperated_call_specs = _seperate_call_specs(call_specs)
     xml_filenames = []
     seperated_call_specs.each do |call_specs|
@@ -51,9 +90,6 @@ class RubySIPPersXMLWriter
     end
     return xml_filenames
   end #make_sipp_xml
-  
-  
-  # private methods
   
   ##################################################
   # fill in unspecified call data
@@ -236,7 +272,7 @@ class RubySIPPersXMLWriter
 EOQ
   else
   header = <<EOQ
-      SIP/2.0 #{_response_codes[header_variables[:request]]}
+      SIP/2.0 #{RESPONSE_CODES[header_variables[:request]]}
       [last_Via:]
       [last_From:]
       [last_To:];tag=[pid]SIPpTag01[call_number]
@@ -249,81 +285,7 @@ EOQ
     return header
   end #_build_header
   
-  def _response_codes
-    return {
-    "100" => "100 Trying",
-    "180" => "180 Ringing",
-    "181" => "181 Call Is Being Forwarded",
-    "182" => "182 Queued",
-    "183" => "183 Session Progress",
-    "199" => "199 Early Dialog Terminated",
-    "200" => "200 OK",
-    "202" => "202 Accepted",
-    "204" => "204 No Notification",
-    "300" => "300 Multiple Choices",
-    "301" => "301 Moved Permanently",
-    "302" => "302 Moved Temporarily",
-    "305" => "305 Use Proxy",
-    "380" => "380 Alternative Service",
-    "400" => "400 Bad Request",
-    "401" => "401 Unauthorized",
-    "402" => "402 Payment Required",
-    "403" => "403 Forbidden",
-    "404" => "404 Not Found",
-    "405" => "405 Method Not Allowed",
-    "406" => "406 Not Acceptable",
-    "407" => "407 Proxy Authentication Required",
-    "408" => "408 Request Timeout",
-    "410" => "410 Gone",
-    "412" => "412 Conditional Request Failed",
-    "413" => "413 Request Entity Too Large",
-    "414" => "414 Request-URI Too Long",
-    "415" => "415 Unsupported Media Type",
-    "416" => "416 Unsupported URI Scheme",
-    "417" => "417 Unknown Resource-Priority",
-    "420" => "420 Bad Extension",
-    "421" => "421 Extension Required",
-    "422" => "422 Session Interval Too Small",
-    "423" => "423 Interval Too Brief",
-    "424" => "424 Bad Location Information",
-    "428" => "428 Use Identity Header",
-    "429" => "429 Provide Referrer Identity",
-    "430" => "430 Flow Failed",
-    "433" => "433 Anonymity Disallowed",
-    "436" => "436 Bad Identity-Info",
-    "437" => "437 Unsupported Certificate",
-    "438" => "438 Invalid Identity Header",
-    "439" => "439 First Hop Lacks Outbound Support",
-    "440" => "440 Max-Breadth Exceeded",
-    "469" => "469 Bad Info Package",
-    "470" => "470 Consent Needed",
-    "480" => "480 Temporarily Unavailable",
-    "481" => "481 Call/Transaction Does Not Exist",
-    "482" => "482 Loop Detected",
-    "483" => "483 Too Many Hops",
-    "484" => "484 Address Incomplete",
-    "485" => "485 Ambiguous",
-    "486" => "486 Busy Here",
-    "487" => "487 Request Terminated",
-    "488" => "488 Not Acceptable Here",
-    "489" => "489 Bad Event",
-    "491" => "491 Request Pending",
-    "493" => "493 Undecipherable",
-    "494" => "494 Security Agreement Required",
-    "500" => "500 Server Internal Error",
-    "501" => "501 Not Implemented",
-    "502" => "502 Bad Gateway",
-    "503" => "503 Service Unavailable",
-    "504" => "504 Server Time-out",
-    "505" => "505 Version Not Supported",
-    "513" => "513 Message Too Large",
-    "580" => "580 Precondition Failure",
-    "600" => "600 Busy Everywhere",
-    "603" => "603 Decline",
-    "604" => "604 Does Not Exist Anywhere",
-    "606" => "606 Not Acceptable"  
-  }
-  end #response_codes
+  private :_seperate_call_specs, :_write_xml, :_build_header
   
 end #RubySIPPersXMLWriter
 
