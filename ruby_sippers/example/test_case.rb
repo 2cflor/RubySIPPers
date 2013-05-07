@@ -1,4 +1,4 @@
-$:.unshift File.join(File.expand_path(File.dirname(__FILE__)),'..')
+$:.unshift File.join(File.expand_path(File.dirname(__FILE__)),'..','lib')
 
 require 'ruby_sippers_client.rb'
 
@@ -32,10 +32,9 @@ conversation = {
 
 # make the call 
 logs = ruby_sippers.logs
-sleep 5
 
-#ruby_sippers.delete_log(1)
-#ruby_sippers.retrieve_logs(1)
+puts ruby_sippers.retrieve_log("2.log")
+ruby_sippers.delete_log("2.log")
 #ruby_sippers.call(:conversation => conversation)
 
 =begin

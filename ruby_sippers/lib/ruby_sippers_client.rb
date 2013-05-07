@@ -3,7 +3,6 @@ require 'uri'
 require 'nokogiri'
 
 class RubySIPPersClient
- 
   def initialize(options)
     @http = Net::HTTP.new(options[:host], options[:port])
     request = Net::HTTP::Get.new("/ping")
@@ -11,16 +10,16 @@ class RubySIPPersClient
     raise response.body if response.code != "200"
   end
   
-  def delete_log(id)
-    request = Net::HTTP::Get.new("/log/delete/#{id}")
+  def delete_log(filename)
+    request = Net::HTTP::Get.new("/log/delete/#{filename}")
     response = @http.request(request)
     puts response.body
   end
   
-  def retrieve_log(id)
-    request = Net::HTTP::Get.new("/log/retrieve/#{id}")
+  def retrieve_log(filename)
+    request = Net::HTTP::Get.new("/log/retrieve/#{filename}")
     response = @http.request(request)
-    puts response.body
+    response.body
   end
 
   def logs

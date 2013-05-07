@@ -15,14 +15,17 @@ get '/ping' do
   'pong'
 end
 
-get '/log/delete/:id' do |id|
-  puts request.body.read
-  halt(501, "Not implemented")
+get '/log/delete/:filename' do |filename|
+  path = "#{SIPP_LOG_PATH}/#{filename}"
+  halt(404, "Log file not found") if File.exists?(path) == false
+  File.delete(path)
+  "#{filename} Deleted"
 end
 
-get '/log/retrieve/:id' do |id|
-  puts request.body.read
-  halt(501, "Not implemented")
+get '/log/retrieve/:filename' do |filename|
+  path = "#{SIPP_LOG_PATH}/#{filename}"
+  halt(404, "Log file not found") if File.exists?(path) == false
+  File.read(path)
 end
 
 get '/log/list' do
