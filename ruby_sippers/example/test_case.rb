@@ -1,9 +1,17 @@
 $:.unshift File.join(File.expand_path(File.dirname(__FILE__)),'..','lib')
 
 require 'ruby_sippers_client.rb'
+require 'socket'
+
+def ip(target)
+  Socket::getaddrinfo(target, 'www', nil, Socket::SOCK_STREAM)[0][3]
+end 
 
 # initialize a RubySIPPersClient object
 ruby_sippers = RubySIPPersClient.new({:host => "freeway.sea.marchex.com", :port => 4567})
+
+from_ip = ip('vscp1.ci.marchex.com') 
+to_ip = ip('vscp1.ci.marchex.com') 
 
 # define call specifications
 # the direction of the '>' specifies the direction of the request
@@ -14,8 +22,8 @@ conversation = {
   :caller_number => '4151234567',
   :caller_name => 'Engelbert Humperdink',
   :roles => [
-    {:name => 'Engelbert', :ip => '127.0.1.1', :descr => 'Caller'},
-    {:name => 'Barry', :ip => '127.0.2.1', :descr => 'Callee'},
+    {:name => 'Engelbert', :ip => "#{from_ip}:5060", :descr => 'Caller'},
+    {:name => 'Barry', :ip => "#{to_ip}:5061", :descr => 'Callee'},
     ],
   :sequence  => [
     {'Engelbert > invite > Barry' => { :retrans => 0.5, :crlf => "true" }},
@@ -30,12 +38,18 @@ conversation = {
     ]
    }     
 
-# make the call 
-logs = ruby_sippers.logs
+# Delete all previous logs
+log_filenames = ruby_sippers.logs
+log_filenames.each {|filename| puts ruby_sippers.delete_log(filename)}
 
-puts ruby_sippers.retrieve_log("2.log")
-ruby_sippers.delete_log("2.log")
-#ruby_sippers.call(:conversation => conversation)
+# Make phone call
+puts ruby_sippers.call(:conversation => conversation)
+
+# Retrieve new logs
+log_filenames = ruby_sippers.logs
+logs = Hash.new
+log_filenames.each {|filename| logs[filename] = ruby_sippers.retrieve_log(filename)}
+
 
 =begin
 Copyright (C) 2012 Christian Flor, John Crawford, Tye Mcqueen, Ambrose Sterr at Marchex Inc.

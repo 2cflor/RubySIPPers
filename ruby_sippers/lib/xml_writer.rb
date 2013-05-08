@@ -82,7 +82,7 @@ RESPONSE_CODES = {
   # param: hash of call specs
   # return: array of xml filenames
   ##################################################
-  def self.make_sipp_xml(call_specs)
+  def make_sipp_xml(call_specs)
     seperated_call_specs = _seperate_call_specs(call_specs)
     xml_filenames = []
     seperated_call_specs.each do |call_specs|
@@ -98,17 +98,17 @@ RESPONSE_CODES = {
   ##################################################    
   def _seperate_call_specs(call_specs)
     call_legs_array = []
-    call_specs[:roles].each do |role|
+    call_specs["roles"].each do |role|
       single_leg_call_specs = {}
-      single_leg_call_specs[:case] = call_specs[:case]
-      single_leg_call_specs[:callee_number] = call_specs[:callee_number]
-      single_leg_call_specs[:caller_name] = call_specs[:caller_name]
-      single_leg_call_specs[:caller_number] = call_specs[:caller_number]
-      single_leg_call_specs[:role] = role
-      single_leg_call_specs[:sequence] = []
-      call_specs[:sequence].each do |step|
-        if step.keys[0].match(/#{role[:name]}/)
-          single_leg_call_specs[:sequence].push(step)
+      single_leg_call_specs["case"] = call_specs["case"]
+      single_leg_call_specs["callee_number"] = call_specs["callee_number"]
+      single_leg_call_specs["caller_name"] = call_specs["caller_name"]
+      single_leg_call_specs["caller_number"] = call_specs["caller_number"]
+      single_leg_call_specs["role"] = role
+      single_leg_call_specs["sequence"] = []
+      call_specs["sequence"].each do |step|
+        if step.keys[0].match(/#{role["name"]}/)
+          single_leg_call_specs["sequence"].push(step)
         end
       end
       call_legs_array.push(single_leg_call_specs)
@@ -128,8 +128,8 @@ RESPONSE_CODES = {
      nil,
      "sipp.dtd"
      )
-      xml.scenario("name" => "#{single_leg_call_specs[:case]}_#{single_leg_call_specs[:role][:descr]}") do
-        single_leg_call_specs[:sequence].each do |step|
+      xml.scenario("name" => "#{single_leg_call_specs["case"]}_#{single_leg_call_specs["role"]["descr"]}") do
+        single_leg_call_specs["sequence"].each do |step|
           flow = step.keys[0]
           #split flow string into array and direct flow left-to-right
           flow_components = flow.split(/ /)
@@ -143,19 +143,19 @@ RESPONSE_CODES = {
             end
           end
           # Checking if the current role is sending, then building the <send> tag
-          if (flow_components[0] == single_leg_call_specs[:role][:name] &&  flow_components[1] == '>')
+          if (flow_components[0] == single_leg_call_specs["role"]["name"] &&  flow_components[1] == '>')
             header_variables = {}
-            header_variables[:request] = flow_components[2].upcase
-            header_variables[:callee_number] = single_leg_call_specs[:callee_number]
-            header_variables[:case] = single_leg_call_specs[:case]
-            if (single_leg_call_specs[:caller_name])
-              header_variables[:caller_name] = single_leg_call_specs[:caller_name]
+            header_variables["request"] = flow_components[2].upcase
+            header_variables["callee_number"] = single_leg_call_specs["callee_number"]
+            header_variables["case"] = single_leg_call_specs["case"]
+            if (single_leg_call_specs["caller_name"])
+              header_variables["caller_name"] = single_leg_call_specs["caller_name"]
             end
-            if (single_leg_call_specs[:caller_number])
-              header_variables[:caller_number] = single_leg_call_specs[:caller_number]
+            if (single_leg_call_specs["caller_number"])
+              header_variables["caller_number"] = single_leg_call_specs["caller_number"]
             end
-            if (step[flow][:retrans])
-              xml.send_("retrans" => "#{(step[flow][:retrans]*1000).to_int}") do
+            if (step[flow]["retrans"])
+              xml.send_("retrans" => "#{(step[flow]["retrans"]*1000).to_int}") do
                 xml.cdata (_build_header(header_variables))
               end
             else
@@ -164,30 +164,30 @@ RESPONSE_CODES = {
               end
             end
           # Checking if the current role is receiving, then building the <recv> tag
-          elsif (flow_components[flow_components.size-1] == single_leg_call_specs[:role][:name] && flow_components[flow_components.size-2] == '>')
+          elsif (flow_components[flow_components.size-1] == single_leg_call_specs["role"]["name"] && flow_components[flow_components.size-2] == '>')
             attributes = {}
             if (flow_components[flow_components.size-3].match(/\d/))
               attributes["response"] = flow_components[flow_components.size-3]
             else
               attributes["request"] = flow_components[flow_components.size-3].upcase
             end
-            if (step[flow][:within])
-              attributes["timeout"] = (step[flow][:within]*1000).to_int
+            if (step[flow]["within"])
+              attributes["timeout"] = (step[flow]["within"]*1000).to_int
             end
-            if (step[flow][:optional])
-              attributes["optional"] = step[flow][:optional]
+            if (step[flow]["optional"])
+              attributes["optional"] = step[flow]["optional"]
             end
-            if (step[flow][:rtd])
-              attributes["rtd"] = step[flow][:rtd]
+            if (step[flow]["rtd"])
+              attributes["rtd"] = step[flow]["rtd"]
             end
-            if (step[flow][:crlf])
-              attributes["crlf"] = step[flow][:crlf]
+            if (step[flow]["crlf"])
+              attributes["crlf"] = step[flow]["crlf"]
             end
             xml.recv(attributes) do
-              if (step[flow][:action])
+              if (step[flow]["action"])
                 xml.action do
-                  if (step[flow][:action][:ereg])
-                    step[flow][:action][:ereg].each do |expression|
+                  if (step[flow]["action"]["ereg"])
+                    step[flow]["action"]["ereg"].each do |expression|
                       xml.ereg(expression) do
                       end
                     end
@@ -198,20 +198,20 @@ RESPONSE_CODES = {
           elsif (flow_components.include?("nop"))
             xml.nop do
               xml.action do
-                if (step[flow][:action][:log])
-                  xml.log_(step[flow][:action][:log]) do           
+                if (step[flow]["action"]["log"])
+                  xml.log_(step[flow]["action"]["log"]) do           
                   end
                 end
-                if (step[flow][:action][:exec])
-                  xml.exec(step[flow][:action][:exec]) do
+                if (step[flow]["action"]["exec"])
+                  xml.exec(step[flow]["action"]["exec"]) do
                   end
                 end
               end
             end
           elsif (flow_components.include?("pause"))
-            if ((flow_components[flow_components.size-1] == single_leg_call_specs[:role][:name] && flow_components[flow_components.size-2] == ':') || 
-                 (flow_components[0] == single_leg_call_specs[:role][:name] && flow_components[1] == ':'))               
-              xml.pause("milliseconds" => "#{(step[flow][:pause]*1000).to_int}") do
+            if ((flow_components[flow_components.size-1] == single_leg_call_specs["role"]["name"] && flow_components[flow_components.size-2] == ':') || 
+                 (flow_components[0] == single_leg_call_specs["role"]["name"] && flow_components[1] == ':'))               
+              xml.pause("milliseconds" => "#{(step[flow]["pause"]*1000).to_int}") do
               end
             end
           end
@@ -222,14 +222,14 @@ RESPONSE_CODES = {
         end
       end
     end
-    filename = "#{single_leg_call_specs[:case]}_role_#{single_leg_call_specs[:role][:name]}.xml"
+    filename = "#{single_leg_call_specs["case"]}_role_#{single_leg_call_specs["role"]["name"]}.xml"
     # write the file
-    temp_file = File.new("./output/temp", "w")
+    temp_file = File.new("./xml/temp", "w")
     temp_file.write(builder.to_xml)
     temp_file.close
     
-    temp_file = File.open("./output/temp", "r")
-    xml_file = File.new("./output/#{filename}", "w")
+    temp_file = File.open("./xml/temp", "r")
+    xml_file = File.new("./xml/#{filename}", "w")
     temp_file.each do |line|
       if (line.match(/!DOCTYPE/))
         line = "#{line}\n"
@@ -239,24 +239,25 @@ RESPONSE_CODES = {
       xml_file.puts("#{line}")
     end
     temp_file.close
+    File.delete("./xml/temp")
     xml_file.close
     return filename
   end #_write_xml
 
   def _build_header(header_variables)
-    if !(header_variables[:request].match(/\d/))
+    if !(header_variables["request"].match(/\d/))
       header = <<EOQ
-      #{header_variables[:request].upcase} sip:#{header_variables[:callee_number]}@[remote_ip]:[remote_port] SIP/2.0
+      #{header_variables["request"].upcase} sip:#{header_variables["callee_number"]}@[remote_ip]:[remote_port] SIP/2.0
       Accept: application/sdp
       Allow: INVITE,ACK,CANCEL,BYE
-      From: "#{header_variables[:caller_name] || 'SIPP'}" <sip:#{header_variables[:caller_number] || "SIPP"}@[local_ip]:[local_port]>;tag=[call_number]
-      To: sut <sip:#{header_variables[:callee_number]}@[remote_ip]:[remote_port]>
+      From: "#{header_variables["caller_name"] || 'SIPP'}" <sip:#{header_variables["caller_number"] || "SIPP"}@[local_ip]:[local_port]>;tag=[call_number]
+      To: sut <sip:#{header_variables["callee_number"]}@[remote_ip]:[remote_port]>
       Via: SIP/2.0/[transport] [local_ip]:[local_port];branch=[branch]
       Call-ID: [call_id]
-      CSeq: [cseq] #{header_variables[:request]}
-      Contact: "#{header_variables[:caller_name] || 'SIPP'}" <sip:#{header_variables[:caller_number] || "SIPP"}@[local_ip]:[local_port]>
+      CSeq: [cseq] #{header_variables["request"]}
+      Contact: "#{header_variables["caller_name"] || 'SIPP'}" <sip:#{header_variables["caller_number"] || "SIPP"}@[local_ip]:[local_port]>
       Max-Forwards: 3
-      Subject: #{header_variables[:name]}
+      Subject: #{header_variables["name"]}
       Content-Type: application/sdp
       Content-Length: [len]
 

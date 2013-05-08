@@ -1,6 +1,7 @@
 require 'net/http'
 require 'uri'
 require 'nokogiri'
+require 'json'
 
 class RubySIPPersClient
   def initialize(options)
@@ -13,7 +14,7 @@ class RubySIPPersClient
   def delete_log(filename)
     request = Net::HTTP::Get.new("/log/delete/#{filename}")
     response = @http.request(request)
-    puts response.body
+    response.body
   end
   
   def retrieve_log(filename)
@@ -28,7 +29,7 @@ class RubySIPPersClient
     xml = Nokogiri::XML(response.body)
     xml.xpath("/filenames/filename").map { |i| i.content }
   end
-    
+
   def call(options)   
     options[:conversation]
     
@@ -36,8 +37,9 @@ class RubySIPPersClient
     
     # Make HTTP Post call to Server
     request = Net::HTTP::Post.new("/call")
-    request.set_form_data({"options" => options})
+    request.set_form_data({:options => options.to_json})
     response = @http.request(request)
+    response.body
   end
 end
 
