@@ -39,6 +39,7 @@ class RubySIPPersClient
     request = Net::HTTP::Post.new("/call")
     request.set_form_data({:options => options.to_json})
     response = @http.request(request)
+    puts "RESPONSE: #{response.body}"
     response.body
   end
 end

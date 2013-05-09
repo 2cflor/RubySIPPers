@@ -7,18 +7,21 @@ def ip(target)
   Socket::getaddrinfo(target, 'www', nil, Socket::SOCK_STREAM)[0][3]
 end 
 
-# initialize a RubySIPPersClient object
-ruby_sippers = RubySIPPersClient.new({:host => "freeway.sea.marchex.com", :port => 4567})
+sippers_server_host = "automation1.qa.marchex.com"
 
-from_ip = ip('vscp1.ci.marchex.com') 
-to_ip = ip('vscp1.ci.marchex.com') 
+# initialize a RubySIPPersClient object
+ruby_sippers = RubySIPPersClient.new({:host => sippers_server_host, :port => 4567})
+
+from_ip = ip(sippers_server_host) 
+to_ip   = ip(sippers_server_host) 
+acd_ip  = ip('vscp1.ci.marchex.com') 
 
 # define call specifications
 # the direction of the '>' specifies the direction of the request
 # this describes the actions, but also the expectations on the receiving end
 conversation = {
   :case => 'conversation_1',
-  :callee_number => '2061234567',
+  :callee_number => '2606394937',
   :caller_number => '4151234567',
   :caller_name => 'Engelbert Humperdink',
   :roles => [
@@ -36,14 +39,22 @@ conversation = {
     {'Engelbert < 200    < Barry' => { :crlf => "true" }},
     {'Barry : pause         '     => { :pause => 4.0 }}
     ]
-   }     
+  }     
+
+options = Hash.new
+options[:conversation]  = conversation
+options[:bg_delay]      = 1000
+options[:acd_ip_port]   = "#{acd_ip}:5060"
+options[:count]         = 1
+options[:limit]         = 1
 
 # Delete all previous logs
 log_filenames = ruby_sippers.logs
 log_filenames.each {|filename| puts ruby_sippers.delete_log(filename)}
 
 # Make phone call
-puts ruby_sippers.call(:conversation => conversation)
+pid = ruby_sippers.call(options)
+puts pid
 
 # Retrieve new logs
 log_filenames = ruby_sippers.logs
