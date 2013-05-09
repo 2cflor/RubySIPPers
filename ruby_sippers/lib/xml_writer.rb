@@ -245,6 +245,22 @@ RESPONSE_CODES = {
   end #_write_xml
 
   def _build_header(header_variables)
+    
+    sdp_info = <<EOQ
+
+      v=0
+      o=user1 53655765 2353687637 IN IP[local_ip_type] [local_ip]
+      s=-
+      c=IN IP[media_ip_type] [media_ip]
+      t=0 0
+      m=audio [media_port] RTP/AVP 8
+      a=rtpmap:8 PCMU/8000
+      a=rtmap:101 telephone-event/8000
+      a=fmtp:101 0-11,16
+
+EOQ
+    
+    
     if !(header_variables["request"].match(/\d/))
       header = <<EOQ
       #{header_variables["request"].upcase} sip:#{header_variables["callee_number"]}@[remote_ip]:[remote_port] SIP/2.0
@@ -261,19 +277,12 @@ RESPONSE_CODES = {
       Content-Type: application/sdp
       Content-Length: [len]
 
-      v=0
-      o=user1 53655765 2353687637 IN IP[local_ip_type] [local_ip]
-      s=-
-      c=IN IP[media_ip_type] [media_ip]
-      t=0 0
-      m=audio [media_port] RTP/AVP 8
-      a=rtpmap:8 PCMU/8000
-      a=rtmap:101 telephone-event/8000
-      a=fmtp:101 0-11,16
+#{sdp_info}
+
 EOQ
   else
   header = <<EOQ
-      SIP/2.0 #{RESPONSE_CODES[header_variables[:request]]}
+      SIP/2.0 #{RESPONSE_CODES[header_variables["request"]]}
       [last_Via:]
       [last_From:]
       [last_To:];tag=[pid]SIPpTag01[call_number]
@@ -282,7 +291,10 @@ EOQ
       Contact: <sip:[local_ip]:[local_port];transport=[transport]>
       Content-Length: 0
 EOQ
-    end
+      if header_variables["request"] == "200"
+        header << sdp_info
+      end
+  end
     return header
   end #_build_header
   
