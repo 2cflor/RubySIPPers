@@ -34,12 +34,14 @@ conversation = {
     {'Engelbert < 180           ' => { :retrans => 0.5, :optional => "true" }},
     {'Engelbert < 200    < Barry' => { :rtd => "true"}},
     {'Engelbert > ack    > Barry' => { :optional => "true", :rtd => "true", :crlf => "true"}},
-    {'Engelbert : pause         ' => { :pause => 15.0 }},
+    {'Engelbert : nop           ' => { :action => {:exec => {:play_pcap_audio => "/site/test-tools/data/pcap/solomahna.pcap"}}}},
+    {'            nop    : Barry' => { :action => {:exec => {:play_pcap_audio => "/site/test-tools/data/pcap/dibdee.pcap"}}}},
+    {'Engelbert : pause         ' => { :pause => 30.0 }},
     {'Engelbert > bye    > Barry' => { :retrans => 0.5}},
     {'Engelbert < 200    < Barry' => { :crlf => "true" }},
     {'Barry : pause         '     => { :pause => 4.0 }}
     ]
-  }     
+  } 
 
 options = Hash.new
 options[:conversation]  = conversation
