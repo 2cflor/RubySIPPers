@@ -10,7 +10,7 @@ require 'json'
 require 'xml_writer'
 
 SIPP_PATH = ENV["SIPP_PATH"] || File.dirname(__FILE__)
-SIPP_LOG_PATH = "#{File.dirname(__FILE__)}/log"
+SIPP_LOG_PATH = "#{File.dirname(__FILE__)}/xml"
 SIPP_XML_PATH = "#{File.dirname(__FILE__)}/xml"
 @@xml_writer = RubySIPPersXMLWriter.new
 
@@ -48,24 +48,65 @@ post '/call' do
   options["xml_files"] = @@xml_writer.make_sipp_xml(options["conversation"])
 
   # Make Call
-  outtext = make_call(options)
+  pids = make_call(options)
   
-  # Return log filename
-  outtext
+  # Return pid
+  pids.to_json
 end
 
 helpers do
   def make_call(options)
-    fg_xml = options["xml_files"][0]
-    bg_xmls = [options["xml_files"][1]]
+    xml_files = options["xml_files"]
+    pids = Hash.new
+    pids["bg"] = Array.new
     
-    sipp = "#{SIPP_PATH}/sipp"
-    opts = ""
-    i, o, wait_thr = Open3.popen2e("#{sipp} #{opts}")
-    outtext = o.read
-    o.close   
+    options["conversation"]["roles"].each_index do |i|
+      next if i == 0  # This kicks off the call and needs to be done after the other processes are up and waiting
+      pids["bg"].push run_background(options, options["conversation"]["roles"][i]["ip"], xml_files[i])
+    end
+
+    # Launch the primary process
+    pids["fg"] = run_background(options, options["conversation"]["roles"][0]["ip"], xml_files[0], true)
+   
+    pp "PID: #{pids}"
+    return pids
+  end
+  
+  def run_background(options, ip, xml, primary = false)
+    sipp      = File.expand_path("#{SIPP_PATH}/sipp")
+    log       = File.join(File.expand_path(SIPP_LOG_PATH),File.basename(xml, '.*') + ".log")
+    ip, port  = ip.split(":")
+    pids      = Hash.new
     
-    return outtext
+    # Set up Commandline options
+    opts = Array.new
+    opts.push options["acd_ip_port"]      if options["acd_ip_port"] && primary
+    opts.push options["sipp_options"]     if options["sipp_options"]
+    opts.push "-d #{options["bg_delay"]}" if options["bg_delay"]
+    opts.push "-i #{ip}"                  if ip
+    opts.push "-p #{port}"                if port
+    opts.push "-bg"  
+    opts.push "-sf #{SIPP_XML_PATH}/#{xml}"
+    opts.push "-trace_err"
+    opts.push "-trace_screen"
+    opts.push "-m #{options["count"]}"    if options["count"] && primary
+    opts.push "-l #{options["limit"]}"    if options["limit"] && primary     
+    
+    # Start SIPp in Background mode
+    puts "starting background process: #{sipp} #{opts.join(" ")}"
+    pids[:fg_pid] = spawn("#{sipp} #{opts.join(" ")}", [:out, :err]=>[log, "w"])
+    Process.detach(pids[:fg_pid])
+    sleep 0.5    
+    
+    # Retrieve Background PID from log
+    contents = File.read(log)
+    if contents =~ /pid=\[(\d+)\]/i
+      pids[:bg_pid] = $1.to_i
+    else 
+      pids[:bg_pid] = 0
+    end  
+    
+    return pids
   end
 end
 
