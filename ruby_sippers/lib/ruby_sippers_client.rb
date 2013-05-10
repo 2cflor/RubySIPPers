@@ -17,12 +17,40 @@ class RubySIPPersClient
     response.body
   end
   
+  def delete_all_logs
+    log_filenames = self.logs
+    log_filenames.each {|filename| puts self.delete_log(filename)}    
+  end
+  
   def retrieve_log(filename)
     request = Net::HTTP::Get.new("/log/retrieve/#{filename}")
     response = @http.request(request)
     response.body
   end
+  
+  def retrieve_all_logs
+    logs = Hash.new
+    self.logs.each {|filename| logs[filename] = self.retrieve_log(filename)}
+    logs
+  end
 
+  def pids
+    request = Net::HTTP::Get.new("/pid/list")
+    response = @http.request(request)
+    JSON.parse(response.body)
+  end   
+  
+  def pid_kill(pid)
+    request = Net::HTTP::Get.new("/pid/kill/#{pid}")
+    response = @http.request(request)
+    response.body
+  end    
+  
+  def kill_all_pids
+    pids = self.pids
+    pids.each {|pid| puts self.pid_kill(pid)}    
+  end  
+  
   def logs
     request = Net::HTTP::Get.new("/log/list")
     response = @http.request(request)
@@ -39,8 +67,17 @@ class RubySIPPersClient
     request = Net::HTTP::Post.new("/call")
     request.set_form_data({:options => options.to_json})
     response = @http.request(request)
-    puts "RESPONSE: #{response.body}"
-    response.body
+    JSON.parse(response.body)
+  end
+  
+  def wait_for_call(pid = nil)
+    i = 0
+    while self.pids.size > 0 do
+      break if pid != nil && self.pids.include?(pid) == false
+      puts "[#{i}] Active PIDs: #{self.pids.join(", ")}"
+      i += 1
+      sleep 1
+    end    
   end
 end
 
