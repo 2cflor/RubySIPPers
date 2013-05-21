@@ -15,13 +15,19 @@ class RubySippersTest < Test::Unit::TestCase
     # initialize a RubySIPPersClient object
     ruby_sippers = RubySIPPersClient.new({:host => sippers_server_host, :port => 4567})
 
+    # Initialize IP addresses used in test
     from_ip = ip(sippers_server_host) 
     to_ip   = ip(sippers_server_host) 
     acd_ip  = ip('vscp1.ci.marchex.com') 
 
+    # Initialize locations to pcap audio files used in call
+    caller_audio = "/site/test-tools/data/pcap/solomahna.pcap"
+    callee_audio = "/site/test-tools/data/pcap/dibdee.pcap"
+    
     # define call specifications
     # the direction of the '>' specifies the direction of the request
     # this describes the actions, but also the expectations on the receiving end
+    
     conversation = {
       :case => 'conversation_1',
       :callee_number => '8777918422',
@@ -38,8 +44,8 @@ class RubySippersTest < Test::Unit::TestCase
         {'Engelbert < 200    < Barry' => { :rtd => "true"}},
         {'Engelbert > ack    > Barry' => { :rtd => "true", :crlf => "true"}},
         {'Engelbert : pause         ' => { :pause => 10.3 }},    
-        {'Engelbert : nop           ' => { :action => {:exec => {:play_pcap_audio => "/site/test-tools/data/pcap/solomahna.pcap"}}}},
-        {'            nop    : Barry' => { :action => {:exec => {:play_pcap_audio => "/site/test-tools/data/pcap/dibdee.pcap"}}}},
+        {'Engelbert : nop           ' => { :action => {:exec => {:play_pcap_audio => caller_audio}}}},
+        {'            nop    : Barry' => { :action => {:exec => {:play_pcap_audio => callee_audio}}}},
         {'Engelbert : pause         ' => { :pause => 40.0 }},
         {'Engelbert > bye    > Barry' => { :retrans => 0.5}},
         {'Engelbert < 200    < Barry' => { :crlf => "true" }},
